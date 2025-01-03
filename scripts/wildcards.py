@@ -1,6 +1,8 @@
 import os
 import random
 import sys
+import re
+import gradio as gr
 
 from modules import scripts, script_callbacks, shared
 
@@ -9,6 +11,8 @@ repo_dir = scripts.basedir()
 
 
 class WildcardsScript(scripts.Script):
+    PATTERN = r"__(.*?)__"
+    
     def title(self):
         return "Simple wildcards"
 
@@ -39,7 +43,13 @@ class WildcardsScript(scripts.Script):
             gen = random.Random()
             gen.seed(seeds[0 if shared.opts.wildcards_same_seed else i])
 
-            res.append("".join(self.replace_wildcard(chunk, gen) for chunk in text.split("__")))
+            for _ in range(shared.opts.wildcards_max_depth):
+                new_text = re.sub(self.PATTERN, lambda x: self.replace_wildcard(x.group(1), gen), text)
+                if new_text == text:
+                    break
+                text = new_text
+
+            res.append(text)
 
         return res
 
@@ -61,6 +71,7 @@ class WildcardsScript(scripts.Script):
 def on_ui_settings():
     shared.opts.add_option("wildcards_same_seed", shared.OptionInfo(False, "Use same seed for all images", section=("wildcards", "Wildcards")))
     shared.opts.add_option("wildcards_write_infotext", shared.OptionInfo(True, "Write original prompt to infotext", section=("wildcards", "Wildcards")).info("the original prompt before __wildcards__ are applied"))
+    shared.opts.add_option("wildcards_max_depth", shared.OptionInfo(1, "Max recursion depth", gr.Number, {"precision": 0}, section=("wildcards", "Wildcards")).info("the max recursive depth that matches should attempt"))
 
 
 script_callbacks.on_ui_settings(on_ui_settings)
