@@ -1,7 +1,6 @@
 import os
 import random
 import sys
-import re
 import gradio as gr
 
 from modules import scripts, script_callbacks, shared
@@ -11,8 +10,6 @@ repo_dir = scripts.basedir()
 
 
 class WildcardsScript(scripts.Script):
-    PATTERN = r"__(.*?)__"
-    
     def title(self):
         return "Simple wildcards"
 
@@ -44,7 +41,7 @@ class WildcardsScript(scripts.Script):
             gen.seed(seeds[0 if shared.opts.wildcards_same_seed else i])
 
             for _ in range(shared.opts.wildcards_max_depth):
-                new_text = re.sub(self.PATTERN, lambda x: self.replace_wildcard(x.group(1), gen), text)
+                new_text = "".join(self.replace_wildcard(chunk, gen) for chunk in text.split("__"))
                 if new_text == text:
                     break
                 text = new_text
